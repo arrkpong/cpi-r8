@@ -457,7 +457,15 @@
         });
 
 
-
+            // Zoom logic (centered on mouse would be better, but let's stick to simple first)
+            // Simple zoom for now to fix the bug
+            if (e.deltaY < 0) {
+                currentZoom *= (1 + scaleAmount);
+            } else {
+                currentZoom /= (1 + scaleAmount);
+            }
+            updateTransform();
+        });
         
         // --- Smart Placement Logic ---
 
