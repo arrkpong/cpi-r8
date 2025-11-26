@@ -247,7 +247,7 @@
 
             <div
                 class="bg-slate-900/90 backdrop-blur border border-slate-600 rounded-lg px-4 py-2 shadow-lg pointer-events-auto text-sky-400 font-mono text-sm flex items-center">
-                <span class="material-icons text-[16px] mr-2">near_me</span>
+                <span class="material-icons text-[16px] mr-2">mouse</span>
                 <span id="coord-display">X: 0 Y: 0</span>
             </div>
         </div>
@@ -431,7 +431,7 @@
             // but screen coords are fine for now.
             const x = Math.round(e.clientX - rect.left);
             const y = Math.round(e.clientY - rect.top);
-            coordDisplay.innerHTML = `<span class="material-icons text-[16px] mr-2 inline">near_me</span> X: ${x} Y: ${y}`;
+            coordDisplay.innerHTML = `<span class="material-icons text-[16px] mr-2 inline">mouse</span> X: ${x} Y: ${y}`;
         });
 
         canvasContainer.addEventListener('mouseup', () => {
