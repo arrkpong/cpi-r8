@@ -143,6 +143,28 @@
                 </label>
             </div>
 
+            <!-- Element Type Controls -->
+            <div class="mt-8">
+                <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 font-mono">Element Types</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="checkbox" checked onchange="toggleType('C')"
+                            class="form-checkbox h-4 w-4 text-sky-500 rounded bg-slate-800 border-slate-600 focus:ring-sky-500 focus:ring-offset-slate-900">
+                        <span class="text-slate-300 group-hover:text-white transition-colors">Column (เสา)</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="checkbox" checked onchange="toggleType('CW')"
+                            class="form-checkbox h-4 w-4 text-sky-500 rounded bg-slate-800 border-slate-600 focus:ring-sky-500 focus:ring-offset-slate-900">
+                        <span class="text-slate-300 group-hover:text-white transition-colors">Wall (ผนัง)</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="checkbox" checked onchange="toggleType('SW')"
+                            class="form-checkbox h-4 w-4 text-sky-500 rounded bg-slate-800 border-slate-600 focus:ring-sky-500 focus:ring-offset-slate-900">
+                        <span class="text-slate-300 group-hover:text-white transition-colors">Shear Wall (ผนังรับแรง)</span>
+                    </label>
+                </div>
+            </div>
+
             <!-- Legend Section -->
             <div class="mt-8">
                 <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 font-mono">Legend
@@ -272,6 +294,7 @@
         // State Variables
         let floorData = [];
         let activeZones = { 'A': true, 'B': true, 'C': true };
+        let activeTypes = { 'C': true, 'CW': true, 'SW': true };
         let showLabels = true;
         let showDetails = false;
         let placedRects = [];
@@ -301,7 +324,26 @@
 
         function toggleZone(zone) {
             activeZones[zone] = !activeZones[zone];
-            const filtered = floorData.filter(d => activeZones[d.zone]);
+            applyFilters();
+        }
+
+        function toggleType(type) {
+            activeTypes[type] = !activeTypes[type];
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const filtered = floorData.filter(d => {
+                // Zone Filter
+                if (!activeZones[d.zone]) return false;
+
+                // Type Filter
+                let type = 'C'; // Default to Column
+                if (d.label.includes('SW')) type = 'SW';
+                else if (d.label.includes('CW')) type = 'CW';
+                
+                return activeTypes[type];
+            });
             renderData(filtered, false);
         }
 
@@ -315,8 +357,7 @@
         
         function toggleDetails(checked) {
             showDetails = checked;
-            const filtered = floorData.filter(d => activeZones[d.zone]);
-            renderData(filtered, false);
+            applyFilters();
         }
 
         const btnZoomIn = document.getElementById('btn-zoom-in');
