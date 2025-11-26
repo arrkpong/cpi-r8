@@ -20,7 +20,9 @@ def merge_csv_data(base_csv_path, dim_csv_path, output_js_path):
                 dims[row['Pier']] = {
                     'rotation': float(row['AxisAngle']) if row['AxisAngle'] else 0.0,
                     'length': float(row['Len.']) if row['Len.'] else 0.3, # Default if missing
-                    'thickness': float(row['Thick.']) if row['Thick.'] else 0.3
+                    'thickness': float(row['Thick.']) if row['Thick.'] else 0.3,
+                    'cg_x': float(row['CG_X']) if row['CG_X'] else None,
+                    'cg_y': float(row['CG_Y']) if row['CG_Y'] else None
                 }
         print(f"Loaded dimensions for {len(dims)} items.")
     except Exception as e:
@@ -59,6 +61,10 @@ def merge_csv_data(base_csv_path, dim_csv_path, output_js_path):
                     item['width'] = d['length']
                     item['depth'] = d['thickness']
                     item['has_dim'] = True
+                    # If CG coordinates exist in dimension file, use them for placement
+                    if d['cg_x'] is not None and d['cg_y'] is not None:
+                        item['x'] = d['cg_x']
+                        item['y'] = d['cg_y']
                 else:
                     # Defaults if no dimension data found
                     item['rotation'] = 0
