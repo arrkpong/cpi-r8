@@ -431,7 +431,7 @@
             // but screen coords are fine for now.
             const x = Math.round(e.clientX - rect.left);
             const y = Math.round(e.clientY - rect.top);
-            coordDisplay.textContent = `X: ${x} Y: ${y}`;
+            coordDisplay.innerHTML = `<span class="material-icons text-[20px] mr-2 inline">near_me</span> X: ${x} Y: ${y}`;
         });
 
         canvasContainer.addEventListener('mouseup', () => {
