@@ -61,6 +61,6 @@ floorplan_r8/
 
 ## 📄 Documentation
 
-- [Base Data Structure (Load & Location)](docs/data_structure_251124.md)
-- [Dimension Data Structure](docs/data_structure_251125.md)
+- [Base Data Structure (Load & Location) - TH](docs/base_data_structure.md) | [EN](docs/base_data_structure_en.md)
+- [Dimension Data Structure - TH](docs/dimension_data_structure.md) | [EN](docs/dimension_data_structure_en.md)
 ````
