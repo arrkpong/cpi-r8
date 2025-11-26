@@ -244,18 +244,6 @@
                 <div class="w-px h-6 bg-slate-600 mx-1"></div>
                 <md-icon-button id="btn-reset" title="Reset View">
                     <md-icon>fit_screen</md-icon>
-                </md-icon-button>
-            </div>
-
-            <div
-                class="bg-slate-900/90 backdrop-blur border border-slate-600 rounded-lg px-4 py-2 shadow-lg pointer-events-auto text-sky-400 font-mono text-sm flex items-center">
-                <md-icon class="mr-2 text-[20px]">near_me</md-icon>
-                <span id="coord-display">X: 0 Y: 0</span>
-            </div>
-        </div>
-
-        <!-- Blueprint Canvas -->
-        <div class="blueprint-canvas w-full h-full overflow-hidden relative cursor-grab" id="canvas-container">
             <svg id="main-svg" viewBox="0 0 1200 600" class="w-full h-full" style="overflow: visible;"
                 preserveAspectRatio="xMidYMid meet">
                 <defs>
@@ -279,183 +267,182 @@
     </main>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const canvasContainer = document.getElementById('canvas-container');
-            const coordDisplay = document.getElementById('coord-display');
-            const svg = document.getElementById('main-svg');
-            const contentLayer = document.getElementById('content-layer');
-            const calloutLayer = document.getElementById('callout-layer');
 
-            // Stats
-            const statTotal = document.getElementById('stat-total');
-            const statMaxLoad = document.getElementById('stat-max-load');
 
-            // State Variables
-            let floorData = [];
-            let activeZones = { 'A': true, 'B': true, 'C': true };
-            let activeTypes = { 'C': true, 'CW': true, 'SW': true };
-            let showLabels = true;
-            let showDetails = false;
-            let placedRects = [];
+        const canvasContainer = document.getElementById('canvas-container');
+        const coordDisplay = document.getElementById('coord-display');
+        const svg = document.getElementById('main-svg');
+        const contentLayer = document.getElementById('content-layer');
+        const calloutLayer = document.getElementById('callout-layer');
+
+        // Stats
+        const statTotal = document.getElementById('stat-total');
+        const statMaxLoad = document.getElementById('stat-max-load');
+
+        // State Variables
+        let floorData = [];
+        let activeZones = { 'A': true, 'B': true, 'C': true };
+        let activeTypes = { 'C': true, 'CW': true, 'SW': true };
+        let showLabels = true;
+        let showDetails = false;
+        let placedRects = [];
+        
+        // Zoom & Pan Variables (Moved to top to avoid ReferenceError)
+        let currentZoom = 1;
+        let isDragging = false;
+        let startX, startY;
+        let translateX = 0;
+        let translateY = 0;
+
+        // Load Data from Global Variable (set by floor_plan_data.js)
+        if (window.floorData) {
+            floorData = window.floorData;
+            updateStats(floorData);
+            renderData(floorData);
+        } else {
+            console.error('floorData not found. Make sure floor_plan_data.js is loaded.');
+            alert('Could not load data. Please ensure floor_plan_data.js exists.');
+        }
+
+        function updateStats(data) {
+            statTotal.textContent = data.length;
+            const maxLoad = Math.min(...data.map(d => d.load)); // Loads are negative?
+            statMaxLoad.textContent = maxLoad.toFixed(2);
+        }
+
+        function toggleZone(zone) {
+            activeZones[zone] = !activeZones[zone];
+            applyFilters();
+        }
+
+        function toggleType(type) {
+            activeTypes[type] = !activeTypes[type];
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const filtered = floorData.filter(d => {
+                // Zone Filter
+                if (!activeZones[d.zone]) return false;
+
+                // Type Filter
+                let type = 'C'; // Default to Column
+                if (d.label.includes('SW')) type = 'SW';
+                else if (d.label.includes('CW')) type = 'CW';
+                
+                return activeTypes[type];
+            });
+            renderData(filtered, false);
+        }
+
+        function toggleLabels(checked) {
+            showLabels = checked;
+            const labels = document.querySelectorAll('.room-label-text');
+            labels.forEach(el => {
+                el.style.display = showLabels ? 'block' : 'none';
+            });
+        }
+        
+        function toggleDetails(checked) {
+            showDetails = checked;
+            applyFilters();
+        }
+
+        const btnZoomIn = document.getElementById('btn-zoom-in');
+        const btnZoomOut = document.getElementById('btn-zoom-out');
+        const btnReset = document.getElementById('btn-reset');
+
+        function updateTransform() {
+            // 1. Content Layer: Standard Pan & Zoom
+            const transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+            contentLayer.style.transform = transform;
+            contentLayer.style.transformOrigin = "0 0"; // Important: Scale from top-left relative to translation
+
+            // 2. Callout Layer: Same Pan & Zoom
+            calloutLayer.style.transform = transform;
+            calloutLayer.style.transformOrigin = "0 0";
+
+            // 3. Counter-scale Callouts to keep fixed size
+            const inverseScale = 1 / currentZoom;
+            const callouts = calloutLayer.children;
             
-            // Zoom & Pan Variables
-            let currentZoom = 1;
-            let isDragging = false;
-            let startX, startY;
-            let translateX = 0;
-            let translateY = 0;
-
-            // Load Data
-            if (window.floorData) {
-                floorData = window.floorData;
-                updateStats(floorData);
-                renderData(floorData);
-            } else {
-                console.error('floorData not found. Make sure floor_plan_data.js is loaded.');
-                alert('Could not load data. Please ensure floor_plan_data.js exists.');
-            }
-
-            function updateStats(data) {
-                if(statTotal) statTotal.textContent = data.length;
-                if(statMaxLoad) {
-                    const maxLoad = Math.min(...data.map(d => d.load));
-                    statMaxLoad.textContent = maxLoad.toFixed(2);
+            for (let i = 0; i < callouts.length; i++) {
+                const g = callouts[i];
+                const anchorX = parseFloat(g.getAttribute('data-anchor-x'));
+                const anchorY = parseFloat(g.getAttribute('data-anchor-y'));
+                
+                if (!isNaN(anchorX)) {
+                    // Set transform origin to the anchor point of the callout
+                    g.style.transformOrigin = `${anchorX}px ${anchorY}px`;
+                    g.style.transform = `scale(${inverseScale})`;
                 }
             }
+        }
 
-            // Make functions global for HTML event handlers
-            window.toggleZone = function(zone) {
-                activeZones[zone] = !activeZones[zone];
-                applyFilters();
-            }
+        btnZoomIn.onclick = () => {
+            currentZoom *= 1.2;
+            updateTransform();
+        };
 
-            window.toggleType = function(type) {
-                activeTypes[type] = !activeTypes[type];
-                applyFilters();
-            }
+        btnZoomOut.onclick = () => {
+            currentZoom /= 1.2;
+            updateTransform();
+        };
 
-            window.toggleLabels = function(checked) {
-                showLabels = checked;
-                const labels = document.querySelectorAll('.room-label-text');
-                labels.forEach(el => {
-                    el.style.display = showLabels ? 'block' : 'none';
-                });
-            }
+        btnReset.onclick = () => {
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            updateTransform();
+        };
+
+        // Panning Events
+        canvasContainer.addEventListener('mousedown', (e) => {
+            // Allow dragging even if clicking on a room (optional, but good for usability)
+            // if (e.target.closest('.room')) return; 
             
-            window.toggleDetails = function(checked) {
-                showDetails = checked;
-                applyFilters();
-            }
-
-            function applyFilters() {
-                const filtered = floorData.filter(d => {
-                    if (!activeZones[d.zone]) return false;
-                    let type = 'C';
-                    if (d.label.includes('SW')) type = 'SW';
-                    else if (d.label.includes('CW')) type = 'CW';
-                    return activeTypes[type];
-                });
-                renderData(filtered, false);
-            }
-
-            const btnZoomIn = document.getElementById('btn-zoom-in');
-            const btnZoomOut = document.getElementById('btn-zoom-out');
-            const btnReset = document.getElementById('btn-reset');
-
-            function updateTransform() {
-                const transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
-                contentLayer.style.transform = transform;
-                contentLayer.style.transformOrigin = "0 0";
-                calloutLayer.style.transform = transform;
-                calloutLayer.style.transformOrigin = "0 0";
-
-                const inverseScale = 1 / currentZoom;
-                const callouts = calloutLayer.children;
-                for (let i = 0; i < callouts.length; i++) {
-                    const g = callouts[i];
-                    const anchorX = parseFloat(g.getAttribute('data-anchor-x'));
-                    const anchorY = parseFloat(g.getAttribute('data-anchor-y'));
-                    if (!isNaN(anchorX)) {
-                        g.style.transformOrigin = `${anchorX}px ${anchorY}px`;
-                        g.style.transform = `scale(${inverseScale})`;
-                    }
-                }
-            }
-
-            if(btnZoomIn) {
-                btnZoomIn.onclick = () => {
-                    currentZoom *= 1.2;
-                    updateTransform();
-                };
-            }
-
-            if(btnZoomOut) {
-                btnZoomOut.onclick = () => {
-                    currentZoom /= 1.2;
-                    updateTransform();
-                };
-            }
-
-            if(btnReset) {
-                btnReset.onclick = () => {
-                    currentZoom = 1;
-                    translateX = 0;
-                    translateY = 0;
-                    updateTransform();
-                };
-            }
-
-            canvasContainer.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                startX = e.clientX - translateX;
-                startY = e.clientY - translateY;
-                canvasContainer.style.cursor = 'grabbing';
-            });
-
-            canvasContainer.addEventListener('mousemove', (e) => {
-                if (isDragging) {
-                    e.preventDefault();
-                    translateX = e.clientX - startX;
-                    translateY = e.clientY - startY;
-                    updateTransform();
-                }
-                const rect = canvasContainer.getBoundingClientRect();
-                const x = Math.round(e.clientX - rect.left);
-                const y = Math.round(e.clientY - rect.top);
-                coordDisplay.innerHTML = `<md-icon class="mr-2 text-[20px] inline">near_me</md-icon> X: ${x} Y: ${y}`;
-            });
-
-            canvasContainer.addEventListener('mouseup', () => {
-                isDragging = false;
-                canvasContainer.style.cursor = 'grab';
-            });
-
-            canvasContainer.addEventListener('mouseleave', () => {
-                isDragging = false;
-                canvasContainer.style.cursor = 'grab';
-            });
-
-            canvasContainer.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const scaleAmount = 0.1;
-                const rect = canvasContainer.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-                const svgX = (mouseX - translateX) / currentZoom;
-                const svgY = (mouseY - translateY) / currentZoom;
-
-                if (e.deltaY < 0) {
-                    currentZoom *= (1 + scaleAmount);
-                } else {
-                    currentZoom /= (1 + scaleAmount);
-                }
-
-                translateX = mouseX - svgX * currentZoom;
-                translateY = mouseY - svgY * currentZoom;
-                updateTransform();
-            });
+            isDragging = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+            canvasContainer.style.cursor = 'grabbing';
         });
 
+        canvasContainer.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateTransform();
+            }
+
+            // Coord display
+            const rect = canvasContainer.getBoundingClientRect();
+            // Adjust for zoom/pan to get "real" coordinates if needed, 
+            // but screen coords are fine for now.
+            const x = Math.round(e.clientX - rect.left);
+            const y = Math.round(e.clientY - rect.top);
+            coordDisplay.textContent = `X: ${x} Y: ${y}`;
+        });
+
+        canvasContainer.addEventListener('mouseup', () => {
+            isDragging = false;
+            canvasContainer.style.cursor = 'grab';
+        });
+
+        canvasContainer.addEventListener('mouseleave', () => {
+            isDragging = false;
+            canvasContainer.style.cursor = 'grab';
+        });
+
+        // Wheel Zoom
+        canvasContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const scaleAmount = 0.1;
+            
+            // Calculate mouse position relative to SVG
+            const rect = canvasContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
 
             // Zoom logic (centered on mouse would be better, but let's stick to simple first)
             // Simple zoom for now to fix the bug
