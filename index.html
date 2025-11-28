@@ -17,9 +17,11 @@
     <script src="floor_plan_data.js"></script>
     <style>
         :root {
-            --blueprint-bg: #1a365d;
+            /* --blueprint-bg: #1a365d; */
+            --blueprint-bg: #ffffff;
             /* Deep Blue */
-            --blueprint-grid: #2c5282;
+            /* --blueprint-grid: #2c5282; */
+            --blueprint-grid: #ffffff;
             /* Lighter Blue for grid */
             --blueprint-line: #90cdf4;
             /* Cyan/Light Blue for walls */
@@ -189,6 +191,11 @@
             <div class="mt-8">
                 <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 font-mono">Options</h3>
                 <label class="flex items-center space-x-3 cursor-pointer group mb-2">
+                    <input type="checkbox" checked onchange="toggleGrid(this.checked)"
+                        class="form-checkbox h-4 w-4 text-sky-500 rounded bg-slate-800 border-slate-600 focus:ring-sky-500 focus:ring-offset-slate-900">
+                    <span class="text-slate-300 group-hover:text-white transition-colors">Show Grid (แสดงเส้นกริด)</span>
+                </label>
+                <label class="flex items-center space-x-3 cursor-pointer group mb-2">
                     <input type="checkbox" checked onchange="toggleLabels(this.checked)"
                         class="form-checkbox h-4 w-4 text-sky-500 rounded bg-slate-800 border-slate-600 focus:ring-sky-500 focus:ring-offset-slate-900">
                     <span class="text-slate-300 group-hover:text-white transition-colors">Show Labels (แสดงชื่อจุด)</span>
@@ -286,6 +293,9 @@
                     </marker>
                 </defs>
 
+                <!-- Grid Layer (Bottom) -->
+                <g id="grid-layer"></g>
+
                 <!-- Dynamic Content Group -->
                 <g id="content-layer"></g>
 
@@ -303,6 +313,7 @@
         const canvasContainer = document.getElementById('canvas-container');
         const coordDisplay = document.getElementById('coord-display');
         const svg = document.getElementById('main-svg');
+        const gridLayer = document.getElementById('grid-layer');
         const contentLayer = document.getElementById('content-layer');
         const calloutLayer = document.getElementById('callout-layer');
 
@@ -316,6 +327,7 @@
         let activeTypes = { 'C': true, 'CW': true, 'SW': true };
         let showLabels = true;
         let showDetails = false;
+        let showGrid = true;
         let placedRects = [];
         
         // Zoom & Pan Variables (Moved to top to avoid ReferenceError)
@@ -351,6 +363,7 @@
         function toggleZone(zone) {
             activeZones[zone] = !activeZones[zone];
             applyFilters();
+            renderGrid(); // Re-render grid when zones change
         }
 
         function toggleType(type) {
@@ -387,6 +400,11 @@
             applyFilters();
         }
 
+        function toggleGrid(checked) {
+            showGrid = checked;
+            gridLayer.style.display = showGrid ? 'block' : 'none';
+        }
+
         const btnZoomIn = document.getElementById('btn-zoom-in');
         const btnZoomOut = document.getElementById('btn-zoom-out');
         const btnReset = document.getElementById('btn-reset');
@@ -394,6 +412,11 @@
         function updateTransform() {
             // 1. Content Layer: Standard Pan & Zoom
             const transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+            
+            // 0. Grid Layer
+            gridLayer.style.transform = transform;
+            gridLayer.style.transformOrigin = "0 0";
+
             contentLayer.style.transform = transform;
             contentLayer.style.transformOrigin = "0 0"; // Important: Scale from top-left relative to translation
 
@@ -614,6 +637,108 @@
             
             // Initial transform update to set scales
             updateTransform();
+            
+            // Render Grid with same scale
+            renderGrid(scale, marginX, marginY, minX, maxY);
+        }
+
+        function renderGrid(scale, marginX, marginY, minX, maxY) {
+            gridLayer.innerHTML = '';
+            if (!showGrid || !window.gridData) return;
+
+            // If arguments are missing (called from toggle), we need to recalculate or store them.
+            // For simplicity, let's store the last render params
+            if (scale === undefined) {
+                if (window.lastRenderParams) {
+                    ({ scale, marginX, marginY, minX, maxY } = window.lastRenderParams);
+                } else {
+                    return;
+                }
+            } else {
+                window.lastRenderParams = { scale, marginX, marginY, minX, maxY };
+            }
+
+            const activeZoneKeys = Object.keys(activeZones).filter(z => activeZones[z]);
+            
+            activeZoneKeys.forEach(zone => {
+                const zoneData = window.gridData[zone];
+                if (!zoneData) return;
+
+                const color = getColorByZone(zone);
+                const opacity = 0.5; // Increased from 0.2 for better visibility
+
+                // Grid Offsets (Calculated to match floorData)
+                const xOffsets = {
+                    'A': 10.0,
+                    'B': -45.2,
+                    'C': -120.8
+                };
+                const xOffset = xOffsets[zone] || 0;
+
+                // Draw X lines (Vertical)
+                if (zoneData.x) {
+                    zoneData.x.forEach(line => {
+                        const globalX = line.coord + xOffset;
+                        const sx = (globalX - minX) * scale + marginX;
+                        
+                        // Vertical line covers the whole view height roughly, or we can try to be smarter.
+                        // For now, let's draw it long enough.
+                        const y1 = -10000;
+                        const y2 = 10000;
+
+                        const el = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                        el.setAttribute("x1", sx);
+                        el.setAttribute("y1", y1);
+                        el.setAttribute("x2", sx);
+                        el.setAttribute("y2", y2);
+                        el.setAttribute("stroke", color);
+                        el.setAttribute("stroke-width", "0.5");
+                        el.setAttribute("stroke-opacity", opacity);
+                        el.setAttribute("stroke-dasharray", "4 2");
+                        el.setAttribute("vector-effect", "non-scaling-stroke");
+                        gridLayer.appendChild(el);
+
+                        // Label
+                        // We place label at the top or bottom of the visible area?
+                        // Let's place it at a fixed Y relative to the drawing for now.
+                        // Or maybe just at the top of the drawing area.
+                        // Let's try placing it at y=0 (which is maxY in our coord system)
+                        const sy = (maxY - 0) * scale + marginY; // y=0
+
+                        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        text.setAttribute("x", sx);
+                        text.setAttribute("y", sy - 10); // Slightly above 0
+                        text.setAttribute("text-anchor", "middle");
+                        text.setAttribute("fill", color);
+                        text.setAttribute("font-size", "4"); // Scaled size?
+                        text.setAttribute("opacity", 0.6);
+                        text.textContent = line.label;
+                        // gridLayer.appendChild(text); // Commented out for now to avoid clutter, can enable if needed
+                    });
+                }
+
+                // Draw Y lines (Horizontal)
+                if (zoneData.y) {
+                    zoneData.y.forEach(line => {
+                        const sy = (maxY - line.coord) * scale + marginY;
+                        
+                        const x1 = -10000;
+                        const x2 = 10000;
+
+                        const el = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                        el.setAttribute("x1", x1);
+                        el.setAttribute("y1", sy);
+                        el.setAttribute("x2", x2);
+                        el.setAttribute("y2", sy);
+                        el.setAttribute("stroke", color);
+                        el.setAttribute("stroke-width", "0.5");
+                        el.setAttribute("stroke-opacity", opacity);
+                        el.setAttribute("stroke-dasharray", "4 2");
+                        el.setAttribute("vector-effect", "non-scaling-stroke");
+                        gridLayer.appendChild(el);
+                    });
+                }
+            });
         }
 
         function drawCallout(item, sx, sy) {
@@ -762,23 +887,40 @@
                 return;
             }
 
+            // Grid Offsets (Same as in renderGrid)
+            const xOffsets = {
+                'A': 10.0,
+                'B': -45.2,
+                'C': -120.8
+            };
+
             // 1. Define Headers
-            const headers = ["Label", "Zone", "Type", "X", "Y", "Width", "Depth", "Rotation", "Load", "Foundation", "Has Dim"];
+            const headers = ["Label", "Zone", "Type", "Global X", "Global Y", "Local X", "Local Y", "Width", "Depth", "Rotation", "Load", "Foundation", "Has Dim"];
             
             // 2. Map Data
-            const rows = floorData.map(item => [
-                item.label,
-                item.zone,
-                item.label.includes('CW') ? 'Wall' : (item.label.includes('SW') ? 'Shear Wall' : 'Column'),
-                item.x,
-                item.y,
-                item.width || '',
-                item.depth || '',
-                item.rotation || 0,
-                item.load,
-                item.foundation,
-                item.has_dim ? 'Yes' : 'No'
-            ]);
+            const rows = floorData.map(item => {
+                const xOffset = xOffsets[item.zone] || 0;
+                // Local = Global - Offset
+                // Note: Y offset is 0 for all zones currently
+                const localX = item.x - xOffset;
+                const localY = item.y; 
+
+                return [
+                    item.label,
+                    item.zone,
+                    item.label.includes('CW') ? 'Wall' : (item.label.includes('SW') ? 'Shear Wall' : 'Column'),
+                    item.x,
+                    item.y,
+                    localX.toFixed(3), // Local X
+                    localY.toFixed(3), // Local Y
+                    item.width || '',
+                    item.depth || '',
+                    item.rotation || 0,
+                    item.load,
+                    item.foundation,
+                    item.has_dim ? 'Yes' : 'No'
+                ];
+            });
 
             // 3. Combine to CSV String
             const csvContent = [
@@ -804,20 +946,35 @@
                 return;
             }
 
+            // Grid Offsets
+            const xOffsets = {
+                'A': 10.0,
+                'B': -45.2,
+                'C': -120.8
+            };
+
             // 1. Prepare Data for SheetJS
-            const dataForSheet = floorData.map(item => ({
-                "Label": item.label,
-                "Zone": item.zone,
-                "Type": item.label.includes('CW') ? 'Wall' : (item.label.includes('SW') ? 'Shear Wall' : 'Column'),
-                "X Coordinate": item.x,
-                "Y Coordinate": item.y,
-                "Width (m)": item.width || 0,
-                "Depth (m)": item.depth || 0,
-                "Rotation (deg)": item.rotation || 0,
-                "Load (tons)": item.load,
-                "Foundation Type": item.foundation,
-                "Has Dimensions": item.has_dim ? 'Yes' : 'No'
-            }));
+            const dataForSheet = floorData.map(item => {
+                const xOffset = xOffsets[item.zone] || 0;
+                const localX = item.x - xOffset;
+                const localY = item.y;
+
+                return {
+                    "Label": item.label,
+                    "Zone": item.zone,
+                    "Type": item.label.includes('CW') ? 'Wall' : (item.label.includes('SW') ? 'Shear Wall' : 'Column'),
+                    "Global X": item.x,
+                    "Global Y": item.y,
+                    "Local X": parseFloat(localX.toFixed(3)),
+                    "Local Y": parseFloat(localY.toFixed(3)),
+                    "Width (m)": item.width || 0,
+                    "Depth (m)": item.depth || 0,
+                    "Rotation (deg)": item.rotation || 0,
+                    "Load (tons)": item.load,
+                    "Foundation Type": item.foundation,
+                    "Has Dimensions": item.has_dim ? 'Yes' : 'No'
+                };
+            });
 
             // 2. Create Worksheet
             const ws = XLSX.utils.json_to_sheet(dataForSheet);
