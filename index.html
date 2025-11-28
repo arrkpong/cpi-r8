@@ -12,30 +12,33 @@
     <!-- Icon Library -->
     <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
     <!-- SheetJS for Excel Export -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <!-- Load Data Script -->
     <script src="floor_plan_data.js"></script>
     <style>
         :root {
-            /* --blueprint-bg: #1a365d; */
-            --blueprint-bg: #ffffff;
-            /* Deep Blue */
-            /* --blueprint-grid: #2c5282; */
-            --blueprint-grid: #ffffff;
-            /* Lighter Blue for grid */
-            --blueprint-line: #90cdf4;
-            /* Cyan/Light Blue for walls */
+            --blueprint-bg: #0f172a;
+            /* --blueprint-grid: #1e293b; */
+            --blueprint-line: #38bdf8;
             --blueprint-text: #e2e8f0;
             --highlight: #f6ad55;
-            /* Orange for active items */
+            --app-bg: #0f172a;
+        }
+
+        body.light-mode {
+            --blueprint-bg: #f8fafc;
+            /* --blueprint-grid: #e2e8f0; */
+            --blueprint-line: #0ea5e9;
+            --blueprint-text: #0f172a;
+            --highlight: #f97316;
+            --app-bg: #f8fafc;
         }
 
         body {
-            background-color: #0f172a;
+            background-color: var(--app-bg);
             font-family: 'Sarabun', sans-serif;
             color: var(--blueprint-text);
             overflow: hidden;
-            /* App-like feel */
         }
 
         .font-mono {
@@ -49,13 +52,13 @@
                 linear-gradient(var(--blueprint-grid) 1px, transparent 1px),
                 linear-gradient(90deg, var(--blueprint-grid) 1px, transparent 1px);
             background-size: 40px 40px;
-            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.5);
+            box-shadow: inset 0 0 60px rgba(15, 23, 42, 0.08);
         }
 
         /* SVG Styles */
         .wall {
             fill: none;
-            stroke: #fff;
+            stroke: var(--blueprint-text);
             stroke-width: 2;
             vector-effect: non-scaling-stroke;
         }
@@ -88,7 +91,7 @@
         }
 
         .dimension-line {
-            stroke: #718096;
+            stroke: #94a3b8;
             stroke-width: 0.5;
             marker-end: url(#arrow);
             marker-start: url(#arrow);
@@ -100,17 +103,72 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: #1e293b;
+            background: #e2e8f0;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #475569;
+            background: #cbd5e1;
             border-radius: 4px;
+        }
+
+        /* Light mode overrides for common dark classes */
+        body.light-mode .bg-slate-950,
+        body.light-mode .bg-slate-900 {
+            background-color: #ffffff !important;
+        }
+
+        body.light-mode .bg-slate-800 {
+            background-color: #f1f5f9 !important;
+        }
+
+        body.light-mode .bg-slate-900\/95 {
+            background-color: rgba(255, 255, 255, 0.95) !important;
+        }
+
+        body.light-mode .bg-slate-900\/90 {
+            background-color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        body.light-mode .border-slate-800,
+        body.light-mode .border-slate-700 {
+            border-color: #e2e8f0 !important;
+        }
+
+        body.light-mode .border-slate-600 {
+            border-color: #cbd5e1 !important;
+        }
+
+        body.light-mode .text-slate-200 {
+            color: #0f172a !important;
+        }
+
+        body.light-mode .text-slate-300 {
+            color: #1f2937 !important;
+        }
+
+        body.light-mode .text-slate-400 {
+            color: #334155 !important;
+        }
+
+        body.light-mode .text-slate-500 {
+            color: #475569 !important;
+        }
+
+        body.light-mode .hover\:bg-slate-700:hover {
+            background-color: #e2e8f0 !important;
+        }
+
+        body.light-mode .bg-slate-600 {
+            background-color: #cbd5e1 !important;
+        }
+
+        body.light-mode .shadow-2xl {
+            box-shadow: 0 20px 30px -12px rgba(15, 23, 42, 0.15), 0 10px 15px -12px rgba(15, 23, 42, 0.08);
         }
     </style>
 </head>
 
-<body class="flex h-screen flex-col md:flex-row">
+<body class="light-mode flex h-screen flex-col md:flex-row">
 
     <!-- Sidebar / Control Panel -->
     <aside class="w-full md:w-80 bg-slate-900 border-r border-slate-700 flex flex-col shadow-2xl z-10">
@@ -119,9 +177,14 @@
             <h1 class="text-xl font-bold text-sky-400 font-mono">PROJECT: RVR R8</h1>
             <p class="text-xs text-slate-400 mt-1">DOC ID: 251124-FDN-001</p>
             <div class="mt-4 flex items-center space-x-2">
-                <span class="px-2 py-1 bg-green-900 text-green-300 text-xs rounded border border-green-700">DATA
+                <span class="px-2 py-1 bg-green-50 text-green-800 text-xs rounded border border-green-200">DATA
                     LINKED</span>
                 <span class="text-xs text-slate-500">V01</span>
+                <button id="theme-toggle" onclick="toggleTheme()"
+                    class="flex items-center space-x-1 px-3 py-1 text-xs rounded border border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-700 transition-colors font-mono">
+                    <i data-lucide="sun" class="w-4 h-4"></i>
+                    <span>Light Mode</span>
+                </button>
             </div>
         </div>
 
@@ -226,19 +289,19 @@
             <div class="mt-8">
                 <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 font-mono">Edit Data</h3>
                 <div class="space-y-3">
-                    <button onclick="addItem('column')" class="w-full flex items-center justify-center space-x-2 bg-indigo-900/50 hover:bg-indigo-800 border border-indigo-700 text-indigo-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                    <button onclick="addItem('column')" class="w-full flex items-center justify-center space-x-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 py-2 px-4 rounded transition-colors text-sm font-mono">
                         <i data-lucide="plus-square" class="w-4 h-4"></i>
                         <span>Add Column</span>
                     </button>
-                    <button onclick="addItem('wall')" class="w-full flex items-center justify-center space-x-2 bg-indigo-900/50 hover:bg-indigo-800 border border-indigo-700 text-indigo-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                    <button onclick="addItem('wall')" class="w-full flex items-center justify-center space-x-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 py-2 px-4 rounded transition-colors text-sm font-mono">
                         <i data-lucide="plus-circle" class="w-4 h-4"></i>
                         <span>Add Wall</span>
                     </button>
-                    <button onclick="addItem('shear_wall')" class="w-full flex items-center justify-center space-x-2 bg-indigo-900/50 hover:bg-indigo-800 border border-indigo-700 text-indigo-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                    <button onclick="addItem('shear_wall')" class="w-full flex items-center justify-center space-x-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 py-2 px-4 rounded transition-colors text-sm font-mono">
                         <i data-lucide="plus-square" class="w-4 h-4"></i>
                         <span>Add Shear Wall</span>
                     </button>
-                    <button onclick="downloadJS()" class="w-full flex items-center justify-center space-x-2 bg-amber-900/50 hover:bg-amber-800 border border-amber-700 text-amber-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                    <button onclick="downloadJS()" class="w-full flex items-center justify-center space-x-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 py-2 px-4 rounded transition-colors text-sm font-mono">
                         <i data-lucide="save" class="w-4 h-4"></i>
                         <span>Save Data (.js)</span>
                     </button>
@@ -249,19 +312,19 @@
             <div class="mt-8">
                 <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 font-mono">Export Data</h3>
                 <div class="space-y-3">
-                    <button onclick="exportToCSV()" class="w-full flex items-center justify-center space-x-2 bg-emerald-900/50 hover:bg-emerald-800 border border-emerald-700 text-emerald-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                    <button onclick="exportToCSV()" class="w-full flex items-center justify-center space-x-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 py-2 px-4 rounded transition-colors text-sm font-mono">
                         <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
                         <span>Export CSV</span>
                     </button>
-                    <button onclick="exportGridToCSV()" class="w-full flex items-center justify-center space-x-2 bg-teal-900/50 hover:bg-teal-800 border border-teal-700 text-teal-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                    <button onclick="exportGridToCSV()" class="w-full flex items-center justify-center space-x-2 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 py-2 px-4 rounded transition-colors text-sm font-mono">
                         <i data-lucide="grid" class="w-4 h-4"></i>
                         <span>Export Grid CSV</span>
                     </button>
-                    <button onclick="exportToSVG()" class="w-full flex items-center justify-center space-x-2 bg-purple-900/50 hover:bg-purple-800 border border-purple-700 text-purple-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                    <button onclick="exportToSVG()" class="w-full flex items-center justify-center space-x-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 py-2 px-4 rounded transition-colors text-sm font-mono">
                         <i data-lucide="image" class="w-4 h-4"></i>
                         <span>Export SVG</span>
                     </button>
-                    <button onclick="exportToExcel()" class="w-full flex items-center justify-center space-x-2 bg-sky-900/50 hover:bg-sky-800 border border-sky-700 text-sky-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                    <button onclick="exportToExcel()" class="w-full flex items-center justify-center space-x-2 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 py-2 px-4 rounded transition-colors text-sm font-mono">
                         <i data-lucide="table" class="w-4 h-4"></i>
                         <span>Export Excel</span>
                     </button>
@@ -412,9 +475,6 @@
     </main>
 
     <script>
-        // Initialize Icons
-        lucide.createIcons();
-
         const canvasContainer = document.getElementById('canvas-container');
         const coordDisplay = document.getElementById('coord-display');
         const svg = document.getElementById('main-svg');
@@ -444,6 +504,40 @@
         let startX, startY;
         let translateX = 0;
         let translateY = 0;
+
+        // --- Theme Toggle ---
+        function updateThemeToggle(isLight) {
+            const btn = document.getElementById('theme-toggle');
+            if (!btn) return;
+
+            const icon = btn.querySelector('i');
+            const label = btn.querySelector('span');
+            if (icon) {
+                icon.setAttribute('data-lucide', isLight ? 'sun' : 'moon');
+            }
+            if (label) {
+                label.textContent = isLight ? 'Light Mode' : 'Dark Mode';
+            }
+            lucide.createIcons();
+        }
+
+        function applyThemeFromStorage() {
+            const saved = localStorage.getItem('r8-theme');
+            const isLight = saved ? saved === 'light' : true;
+            document.body.classList.toggle('light-mode', isLight);
+            updateThemeToggle(isLight);
+        }
+
+        function toggleTheme() {
+            const nextIsLight = !document.body.classList.contains('light-mode');
+            document.body.classList.toggle('light-mode', nextIsLight);
+            localStorage.setItem('r8-theme', nextIsLight ? 'light' : 'dark');
+            updateThemeToggle(nextIsLight);
+        }
+
+        // Initialize Icons and Theme
+        lucide.createIcons();
+        applyThemeFromStorage();
 
         // --- Editor Functions ---
 
