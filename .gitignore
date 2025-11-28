@@ -1,0 +1,34 @@
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Archives and temp
+*.zip
+*.rar
+*.7z
+*.tmp
+*.bak
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.python-version
+.venv/
+venv/
+
+# Node / build
+node_modules/
+dist/
+build/
+
+# IDE / tooling
+.vscode/
+.idea/
+*.code-workspace
+
+data/
