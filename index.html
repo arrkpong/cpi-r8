@@ -222,6 +222,29 @@
                 </ul>
             </div>
 
+            <!-- Edit Section -->
+            <div class="mt-8">
+                <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 font-mono">Edit Data</h3>
+                <div class="space-y-3">
+                    <button onclick="addItem('column')" class="w-full flex items-center justify-center space-x-2 bg-indigo-900/50 hover:bg-indigo-800 border border-indigo-700 text-indigo-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                        <i data-lucide="plus-square" class="w-4 h-4"></i>
+                        <span>Add Column</span>
+                    </button>
+                    <button onclick="addItem('wall')" class="w-full flex items-center justify-center space-x-2 bg-indigo-900/50 hover:bg-indigo-800 border border-indigo-700 text-indigo-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>Add Wall</span>
+                    </button>
+                    <button onclick="addItem('shear_wall')" class="w-full flex items-center justify-center space-x-2 bg-indigo-900/50 hover:bg-indigo-800 border border-indigo-700 text-indigo-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                        <i data-lucide="plus-square" class="w-4 h-4"></i>
+                        <span>Add Shear Wall</span>
+                    </button>
+                    <button onclick="downloadJS()" class="w-full flex items-center justify-center space-x-2 bg-amber-900/50 hover:bg-amber-800 border border-amber-700 text-amber-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        <span>Save Data (.js)</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- Export Section -->
             <div class="mt-8">
                 <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 font-mono">Export Data</h3>
@@ -233,6 +256,10 @@
                     <button onclick="exportGridToCSV()" class="w-full flex items-center justify-center space-x-2 bg-teal-900/50 hover:bg-teal-800 border border-teal-700 text-teal-300 py-2 px-4 rounded transition-colors text-sm font-mono">
                         <i data-lucide="grid" class="w-4 h-4"></i>
                         <span>Export Grid CSV</span>
+                    </button>
+                    <button onclick="exportToSVG()" class="w-full flex items-center justify-center space-x-2 bg-purple-900/50 hover:bg-purple-800 border border-purple-700 text-purple-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                        <i data-lucide="image" class="w-4 h-4"></i>
+                        <span>Export SVG</span>
                     </button>
                     <button onclick="exportToExcel()" class="w-full flex items-center justify-center space-x-2 bg-sky-900/50 hover:bg-sky-800 border border-sky-700 text-sky-300 py-2 px-4 rounded transition-colors text-sm font-mono">
                         <i data-lucide="table" class="w-4 h-4"></i>
@@ -254,6 +281,80 @@
             </div>
         </div>
     </aside>
+
+    <!-- Editor Panel (Floating Right) -->
+    <div id="editor-panel" class="hidden absolute top-20 right-4 w-80 bg-slate-900/95 backdrop-blur border border-slate-700 rounded-lg shadow-2xl z-30 flex flex-col overflow-hidden transition-all duration-200">
+        <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+            <h3 class="text-sm font-bold text-slate-200 font-mono flex items-center">
+                <i data-lucide="edit-3" class="w-4 h-4 mr-2 text-indigo-400"></i>
+                Edit Properties
+            </h3>
+            <button onclick="closeEditor()" class="text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <div class="p-4 space-y-3 overflow-y-auto max-h-[70vh]">
+            <input type="hidden" id="edit-id">
+            
+            <div>
+                <label class="block text-xs text-slate-400 font-mono mb-1">Label</label>
+                <input type="text" id="edit-label" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none font-mono">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-slate-400 font-mono mb-1">Zone</label>
+                    <select id="edit-zone" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none font-mono">
+                        <option value="A">Zone A</option>
+                        <option value="B">Zone B</option>
+                        <option value="C">Zone C</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 font-mono mb-1">Foundation</label>
+                    <input type="text" id="edit-foundation" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none font-mono">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-slate-400 font-mono mb-1">Global X</label>
+                    <input type="number" step="0.01" id="edit-x" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 font-mono mb-1">Global Y</label>
+                    <input type="number" step="0.01" id="edit-y" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none font-mono">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-slate-400 font-mono mb-1">Width (m)</label>
+                    <input type="number" step="0.05" id="edit-width" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 font-mono mb-1">Depth (m)</label>
+                    <input type="number" step="0.05" id="edit-depth" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none font-mono">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-slate-400 font-mono mb-1">Rotation (°)</label>
+                    <input type="number" step="1" id="edit-rotation" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 font-mono mb-1">Load (tons)</label>
+                    <input type="number" step="0.1" id="edit-load" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none font-mono">
+                </div>
+            </div>
+
+            <div class="pt-2 flex space-x-2">
+                <button onclick="updateItem()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded text-sm font-mono transition-colors">Update</button>
+                <button onclick="deleteItem()" class="flex-1 bg-red-900/50 hover:bg-red-800 border border-red-800 text-red-300 py-2 rounded text-sm font-mono transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Viewport -->
     <main class="flex-1 relative flex flex-col h-full">
@@ -333,6 +434,7 @@
         let showDetails = false;
         let showGrid = true;
         let placedRects = [];
+        let selectedItemId = null; // Track selected item
         
         // Zoom & Pan Variables (Moved to top to avoid ReferenceError)
         const minZoom = 1;
@@ -342,6 +444,134 @@
         let startX, startY;
         let translateX = 0;
         let translateY = 0;
+
+        // --- Editor Functions ---
+
+        const editorPanel = document.getElementById('editor-panel');
+        const editId = document.getElementById('edit-id');
+        const editLabel = document.getElementById('edit-label');
+        const editZone = document.getElementById('edit-zone');
+        const editFoundation = document.getElementById('edit-foundation');
+        const editX = document.getElementById('edit-x');
+        const editY = document.getElementById('edit-y');
+        const editWidth = document.getElementById('edit-width');
+        const editDepth = document.getElementById('edit-depth');
+        const editRotation = document.getElementById('edit-rotation');
+        const editLoad = document.getElementById('edit-load');
+
+        function openEditor(item) {
+            selectedItemId = item.id;
+            editorPanel.classList.remove('hidden');
+            
+            // Populate Form
+            editId.value = item.id;
+            editLabel.value = item.label;
+            editZone.value = item.zone;
+            editFoundation.value = item.foundation || '';
+            editX.value = item.x;
+            editY.value = item.y;
+            editWidth.value = item.width || 0;
+            editDepth.value = item.depth || 0;
+            editRotation.value = item.rotation || 0;
+            editLoad.value = item.load || 0;
+
+            renderData(floorData, false); // Re-render to show selection highlight
+        }
+
+        function closeEditor() {
+            selectedItemId = null;
+            editorPanel.classList.add('hidden');
+            renderData(floorData, false);
+        }
+
+        function updateItem() {
+            if (!selectedItemId) return;
+
+            const item = floorData.find(d => d.id === selectedItemId);
+            if (!item) return;
+
+            // Update Values
+            item.label = editLabel.value;
+            item.zone = editZone.value;
+            item.foundation = editFoundation.value;
+            item.x = parseFloat(editX.value);
+            item.y = parseFloat(editY.value);
+            item.width = parseFloat(editWidth.value);
+            item.depth = parseFloat(editDepth.value);
+            item.rotation = parseFloat(editRotation.value);
+            item.load = parseFloat(editLoad.value);
+
+            // Determine has_dim
+            item.has_dim = (item.width > 0 && item.depth > 0);
+
+            renderData(floorData, false);
+            // Don't close editor, allow continuous editing
+        }
+
+        function deleteItem() {
+            if (!selectedItemId) return;
+            if (!confirm('Are you sure you want to delete this item?')) return;
+
+            floorData = floorData.filter(d => d.id !== selectedItemId);
+            closeEditor();
+            updateStats(floorData);
+            renderData(floorData, false);
+        }
+
+        function addItem(type) {
+            const newId = (Math.max(...floorData.map(d => parseInt(d.id) || 0)) + 1).toString();
+            
+            // Default values based on type
+            let label = 'New_Col';
+            let width = 0.5;
+            let depth = 0.5;
+
+            if (type === 'wall') {
+                label = 'New_CW';
+                width = 0.2;
+                depth = 2.0;
+            } else if (type === 'shear_wall') {
+                label = 'New_SW';
+                width = 0.3;
+                depth = 2.0;
+            }
+
+            const newItem = {
+                id: newId,
+                zone: 'A',
+                label: label,
+                foundation: 'F1',
+                x: 0,
+                y: 0,
+                width: width,
+                depth: depth,
+                rotation: 0,
+                load: 0,
+                has_dim: true
+            };
+
+            // Try to place it in the center of the current view? Or just 0,0
+            // Let's put it at 0,0 for now, user can edit.
+            
+            floorData.push(newItem);
+            updateStats(floorData);
+            openEditor(newItem);
+        }
+
+        function downloadJS() {
+            const jsonContent = JSON.stringify(floorData, null, 4);
+            const jsContent = `window.floorData = ${jsonContent};`;
+            
+            const blob = new Blob([jsContent], { type: "text/javascript;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", "floor_plan_data.js");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         // Load Data from Global Variable (set by floor_plan_data.js)
         if (window.floorData) {
@@ -623,17 +853,58 @@
 
                 g.onclick = (e) => {
                     e.stopPropagation();
-                    if (!showDetails) {
-                        calloutLayer.innerHTML = '';
-                        placedRects = []; // Reset for single view
-                        drawCallout(item, sx, sy);
-                    }
+                    // If showing details (callouts), do that.
+                    // But now we have an editor. Let's prioritize Editor.
+                    // Or maybe toggle: Click -> Select & Edit.
+                    
+                    openEditor(item);
                 };
 
                 g.appendChild(shape);
                 g.appendChild(text);
                 contentLayer.appendChild(g);
                 
+                // Highlight if selected
+                if (selectedItemId === item.id) {
+                    const highlight = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    // Bounding box for highlight
+                    const padding = 2;
+                    let hx, hy, hw, hh;
+                    
+                    if (item.has_dim) {
+                         const w = item.width * scale;
+                         const h = item.depth * scale;
+                         hx = sx - w/2 - padding;
+                         hy = sy - h/2 - padding;
+                         hw = w + padding*2;
+                         hh = h + padding*2;
+                    } else {
+                        const size = 5;
+                        hx = sx - size/2 - padding;
+                        hy = sy - size/2 - padding;
+                        hw = size + padding*2;
+                        hh = size + padding*2;
+                    }
+
+                    highlight.setAttribute("x", hx);
+                    highlight.setAttribute("y", hy);
+                    highlight.setAttribute("width", hw);
+                    highlight.setAttribute("height", hh);
+                    highlight.setAttribute("fill", "none");
+                    highlight.setAttribute("stroke", "#f59e0b"); // Amber 500
+                    highlight.setAttribute("stroke-width", "1");
+                    highlight.setAttribute("vector-effect", "non-scaling-stroke");
+                    if (item.rotation !== 0 && item.has_dim) {
+                         highlight.setAttribute("transform", `rotate(${-item.rotation}, ${sx}, ${sy})`);
+                    }
+                    
+                    // Prepend so it's behind the object but above grid? 
+                    // Actually append to g so it moves with it? No, g has no transform.
+                    // Append to contentLayer but before g?
+                    // Let's just append to g, it's fine.
+                    g.insertBefore(highlight, shape);
+                }
+
                 if (showDetails) {
                     drawCallout(item, sx, sy);
                 }
@@ -1010,6 +1281,66 @@
             link.setAttribute("href", url);
             link.setAttribute("download", filename);
             link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportToSVG() {
+            const svg = document.getElementById('main-svg');
+            if (!svg) return;
+
+            // 1. Clone the SVG to not affect the display
+            const clone = svg.cloneNode(true);
+
+            // 2. Embed Styles
+            // We need to capture the CSS variables and specific classes used in the SVG
+            const styleElement = document.createElement('style');
+            styleElement.textContent = `
+                :root {
+                    --blueprint-bg: #ffffff;
+                    --blueprint-grid: #ffffff;
+                    --blueprint-line: #90cdf4;
+                    --blueprint-text: #e2e8f0;
+                    --highlight: #f6ad55;
+                }
+                text { font-family: 'JetBrains Mono', monospace; }
+                .wall { fill: none; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke; }
+                .partition { fill: none; stroke: var(--blueprint-line); stroke-width: 1; stroke-dasharray: 4; }
+                .room circle, .room rect { transition: all 0.3s ease; }
+                .room-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--blueprint-text); text-anchor: middle; }
+                .room-label-text { font-family: 'JetBrains Mono', monospace; }
+            `;
+            clone.insertBefore(styleElement, clone.firstChild);
+
+            // 3. Add Background Rect
+            // SVG defaults to transparent. We want the blueprint background.
+            const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            bgRect.setAttribute("x", "-5000"); // Large enough to cover
+            bgRect.setAttribute("y", "-5000");
+            bgRect.setAttribute("width", "10000");
+            bgRect.setAttribute("height", "10000");
+            bgRect.setAttribute("fill", "var(--blueprint-bg)");
+            clone.insertBefore(bgRect, clone.firstChild); // Put it at the very bottom
+
+            // 4. Serialize
+            const serializer = new XMLSerializer();
+            let source = serializer.serializeToString(clone);
+
+            // 5. Add Namespaces
+            if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+                source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+            }
+            if(!source.match(/^<svg[^>]+xmlns:xlink="http\:\/\/www\.w3\.org\/1999\/xlink"/)){
+                source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+            }
+
+            // 6. Download
+            const blob = new Blob([source], {type: "image/svg+xml;charset=utf-8"});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `floor_plan_${new Date().toISOString().slice(0,10)}.svg`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
