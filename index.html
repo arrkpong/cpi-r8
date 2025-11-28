@@ -230,6 +230,10 @@
                         <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
                         <span>Export CSV</span>
                     </button>
+                    <button onclick="exportGridToCSV()" class="w-full flex items-center justify-center space-x-2 bg-teal-900/50 hover:bg-teal-800 border border-teal-700 text-teal-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                        <i data-lucide="grid" class="w-4 h-4"></i>
+                        <span>Export Grid CSV</span>
+                    </button>
                     <button onclick="exportToExcel()" class="w-full flex items-center justify-center space-x-2 bg-sky-900/50 hover:bg-sky-800 border border-sky-700 text-sky-300 py-2 px-4 rounded transition-colors text-sm font-mono">
                         <i data-lucide="table" class="w-4 h-4"></i>
                         <span>Export Excel</span>
@@ -881,6 +885,50 @@
 
         // --- Export Functions ---
 
+        function getGridDataForExport() {
+            if (!window.gridData) return [];
+            
+            const xOffsets = {
+                'A': 10.0,
+                'B': -45.2,
+                'C': -120.8
+            };
+
+            const rows = [];
+            
+            // Iterate Zones
+            for (const [zone, axes] of Object.entries(window.gridData)) {
+                const xOffset = xOffsets[zone] || 0;
+                
+                // X Grids (Vertical Lines)
+                if (axes.x) {
+                    axes.x.forEach(g => {
+                        rows.push({
+                            Zone: zone,
+                            Axis: 'X (Vertical)',
+                            Label: g.label,
+                            LocalCoord: g.coord,
+                            GlobalCoord: g.coord + xOffset
+                        });
+                    });
+                }
+
+                // Y Grids (Horizontal Lines)
+                if (axes.y) {
+                    axes.y.forEach(g => {
+                        rows.push({
+                            Zone: zone,
+                            Axis: 'Y (Horizontal)',
+                            Label: g.label,
+                            LocalCoord: g.coord,
+                            GlobalCoord: g.coord // Y offset is 0
+                        });
+                    });
+                }
+            }
+            return rows;
+        }
+
         function exportToCSV() {
             if (!floorData || floorData.length === 0) {
                 alert("No data to export");
@@ -928,12 +976,39 @@
                 ...rows.map(r => r.join(","))
             ].join("\n");
 
-            // 4. Create Blob and Download
-            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            downloadCSV(csvContent, `floor_plan_data_${new Date().toISOString().slice(0,10)}.csv`);
+        }
+
+        function exportGridToCSV() {
+            const gridRows = getGridDataForExport();
+            if (gridRows.length === 0) {
+                alert("No grid data to export");
+                return;
+            }
+
+            const headers = ["Zone", "Axis", "Label", "Local Coordinate", "Global Coordinate"];
+            const rows = gridRows.map(r => [
+                r.Zone,
+                r.Axis,
+                r.Label,
+                r.LocalCoord,
+                r.GlobalCoord.toFixed(3)
+            ]);
+
+            const csvContent = [
+                headers.join(","),
+                ...rows.map(r => r.join(","))
+            ].join("\n");
+
+            downloadCSV(csvContent, `grid_data_${new Date().toISOString().slice(0,10)}.csv`);
+        }
+
+        function downloadCSV(content, filename) {
+            const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.setAttribute("href", url);
-            link.setAttribute("download", `floor_plan_data_${new Date().toISOString().slice(0,10)}.csv`);
+            link.setAttribute("download", filename);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
@@ -953,8 +1028,8 @@
                 'C': -120.8
             };
 
-            // 1. Prepare Data for SheetJS
-            const dataForSheet = floorData.map(item => {
+            // 1. Prepare Floor Data
+            const floorRows = floorData.map(item => {
                 const xOffset = xOffsets[item.zone] || 0;
                 const localX = item.x - xOffset;
                 const localY = item.y;
@@ -976,15 +1051,29 @@
                 };
             });
 
-            // 2. Create Worksheet
-            const ws = XLSX.utils.json_to_sheet(dataForSheet);
+            // 2. Prepare Grid Data
+            const gridRowsRaw = getGridDataForExport();
+            const gridRows = gridRowsRaw.map(r => ({
+                "Zone": r.Zone,
+                "Axis": r.Axis,
+                "Label": r.Label,
+                "Local Coordinate": r.LocalCoord,
+                "Global Coordinate": parseFloat(r.GlobalCoord.toFixed(3))
+            }));
 
-            // 3. Create Workbook
+            // 3. Create Workbook & Sheets
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Floor Data");
+            
+            const wsFloor = XLSX.utils.json_to_sheet(floorRows);
+            XLSX.utils.book_append_sheet(wb, wsFloor, "Floor Data");
+
+            if (gridRows.length > 0) {
+                const wsGrid = XLSX.utils.json_to_sheet(gridRows);
+                XLSX.utils.book_append_sheet(wb, wsGrid, "Grid Data");
+            }
 
             // 4. Write File
-            XLSX.writeFile(wb, `floor_plan_data_${new Date().toISOString().slice(0,10)}.xlsx`);
+            XLSX.writeFile(wb, `floor_plan_export_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
         // Click outside to close
