@@ -11,6 +11,8 @@
         rel="stylesheet">
     <!-- Icon Library -->
     <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <!-- Load Data Script -->
     <script src="floor_plan_data.js"></script>
     <style>
@@ -211,6 +213,21 @@
                             class="text-xs font-mono bg-slate-800 px-1 rounded text-red-400">-</span>
                     </li>
                 </ul>
+            </div>
+
+            <!-- Export Section -->
+            <div class="mt-8">
+                <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 font-mono">Export Data</h3>
+                <div class="space-y-3">
+                    <button onclick="exportToCSV()" class="w-full flex items-center justify-center space-x-2 bg-emerald-900/50 hover:bg-emerald-800 border border-emerald-700 text-emerald-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                        <span>Export CSV</span>
+                    </button>
+                    <button onclick="exportToExcel()" class="w-full flex items-center justify-center space-x-2 bg-sky-900/50 hover:bg-sky-800 border border-sky-700 text-sky-300 py-2 px-4 rounded transition-colors text-sm font-mono">
+                        <i data-lucide="table" class="w-4 h-4"></i>
+                        <span>Export Excel</span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -735,6 +752,82 @@
                 case 'C': return '#68d391'; // Green 400
                 default: return '#cbd5e0';
             }
+        }
+
+        // --- Export Functions ---
+
+        function exportToCSV() {
+            if (!floorData || floorData.length === 0) {
+                alert("No data to export");
+                return;
+            }
+
+            // 1. Define Headers
+            const headers = ["Label", "Zone", "Type", "X", "Y", "Width", "Depth", "Rotation", "Load", "Foundation", "Has Dim"];
+            
+            // 2. Map Data
+            const rows = floorData.map(item => [
+                item.label,
+                item.zone,
+                item.label.includes('CW') ? 'Wall' : (item.label.includes('SW') ? 'Shear Wall' : 'Column'),
+                item.x,
+                item.y,
+                item.width || '',
+                item.depth || '',
+                item.rotation || 0,
+                item.load,
+                item.foundation,
+                item.has_dim ? 'Yes' : 'No'
+            ]);
+
+            // 3. Combine to CSV String
+            const csvContent = [
+                headers.join(","),
+                ...rows.map(r => r.join(","))
+            ].join("\n");
+
+            // 4. Create Blob and Download
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `floor_plan_data_${new Date().toISOString().slice(0,10)}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportToExcel() {
+            if (!floorData || floorData.length === 0) {
+                alert("No data to export");
+                return;
+            }
+
+            // 1. Prepare Data for SheetJS
+            const dataForSheet = floorData.map(item => ({
+                "Label": item.label,
+                "Zone": item.zone,
+                "Type": item.label.includes('CW') ? 'Wall' : (item.label.includes('SW') ? 'Shear Wall' : 'Column'),
+                "X Coordinate": item.x,
+                "Y Coordinate": item.y,
+                "Width (m)": item.width || 0,
+                "Depth (m)": item.depth || 0,
+                "Rotation (deg)": item.rotation || 0,
+                "Load (tons)": item.load,
+                "Foundation Type": item.foundation,
+                "Has Dimensions": item.has_dim ? 'Yes' : 'No'
+            }));
+
+            // 2. Create Worksheet
+            const ws = XLSX.utils.json_to_sheet(dataForSheet);
+
+            // 3. Create Workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Floor Data");
+
+            // 4. Write File
+            XLSX.writeFile(wb, `floor_plan_data_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
         // Click outside to close
