@@ -1387,19 +1387,36 @@
             // 1. Clone the SVG to not affect the display
             const clone = svg.cloneNode(true);
 
-            // 2. Embed Styles
-            // We need to capture the CSS variables and specific classes used in the SVG
+            // Remove zoom/pan transforms so export shows full drawing
+            ['grid-layer', 'content-layer', 'callout-layer'].forEach(id => {
+                const layer = clone.getElementById ? clone.getElementById(id) : clone.querySelector(`#${id}`);
+                if (layer && layer.style) {
+                    layer.style.transform = 'none';
+                    layer.style.transformOrigin = null;
+                }
+            });
+
+            // 2. Embed Styles (use current theme variables)
+            const cs = getComputedStyle(document.body);
+            const cssVars = {
+                bg: cs.getPropertyValue('--blueprint-bg').trim() || '#0f172a',
+                grid: cs.getPropertyValue('--blueprint-grid').trim() || '#1e293b',
+                line: cs.getPropertyValue('--blueprint-line').trim() || '#38bdf8',
+                text: cs.getPropertyValue('--blueprint-text').trim() || '#e2e8f0',
+                highlight: cs.getPropertyValue('--highlight').trim() || '#f6ad55',
+            };
+
             const styleElement = document.createElement('style');
             styleElement.textContent = `
                 :root {
-                    --blueprint-bg: #ffffff;
-                    --blueprint-grid: #ffffff;
-                    --blueprint-line: #90cdf4;
-                    --blueprint-text: #e2e8f0;
-                    --highlight: #f6ad55;
+                    --blueprint-bg: ${cssVars.bg};
+                    --blueprint-grid: ${cssVars.grid};
+                    --blueprint-line: ${cssVars.line};
+                    --blueprint-text: ${cssVars.text};
+                    --highlight: ${cssVars.highlight};
                 }
                 text { font-family: 'JetBrains Mono', monospace; }
-                .wall { fill: none; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke; }
+                .wall { fill: none; stroke: var(--blueprint-text); stroke-width: 2; vector-effect: non-scaling-stroke; }
                 .partition { fill: none; stroke: var(--blueprint-line); stroke-width: 1; stroke-dasharray: 4; }
                 .room circle, .room rect { transition: all 0.3s ease; }
                 .room-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--blueprint-text); text-anchor: middle; }
