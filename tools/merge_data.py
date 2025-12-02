@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # Paths relative to 'tools/' directory
     base_csv = "../data/251124_R8_FDN_Load_CG_Calc_V01.csv"
     dim_csv = "../data/251125_R8_ABCD_VC_Location_Dimension_V01.csv"
-    output_js = "../floor_plan_data.js"
+    output_js = "../data.js"
     
     # Ensure we are in the right directory or use absolute paths if needed
     # This assumes running from 'tools/' or root with adjustment

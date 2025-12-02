@@ -14,7 +14,7 @@
     <!-- SheetJS for Excel Export -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <!-- Load Data Script -->
-    <script src="floor_plan_data.js"></script>
+    <script src="data.js"></script>
     <style>
         :root {
             --blueprint-bg: #0f172a;
@@ -98,6 +98,17 @@
         }
 
         /* Custom Scrollbar for sidebar */
+        .foundation {
+            fill: none;
+            stroke: #94a3b8;
+            stroke-width: 1;
+            stroke-dasharray: 2;
+            vector-effect: non-scaling-stroke;
+        }
+        .pile {
+            fill: #cbd5e1;
+            stroke: none;
+        }
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -208,6 +219,23 @@
                         class="form-checkbox h-4 w-4 text-sky-500 rounded bg-slate-800 border-slate-600 focus:ring-sky-500 focus:ring-offset-slate-900">
                     <span class="text-slate-300 group-hover:text-white transition-colors">Zone C</span>
                 </label>
+            </div>
+
+            <!-- Sub-structure Controls -->
+            <div class="mt-8">
+                <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 font-mono">Sub-structure</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="checkbox" onchange="toggleFoundations(this.checked)"
+                            class="form-checkbox h-4 w-4 text-sky-500 rounded bg-slate-800 border-slate-600 focus:ring-sky-500 focus:ring-offset-slate-900">
+                        <span class="text-slate-300 group-hover:text-white transition-colors">Foundations (ฐานราก)</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="checkbox" onchange="togglePiles(this.checked)"
+                            class="form-checkbox h-4 w-4 text-sky-500 rounded bg-slate-800 border-slate-600 focus:ring-sky-500 focus:ring-offset-slate-900">
+                        <span class="text-slate-300 group-hover:text-white transition-colors">Piles (เสาเข็ม)</span>
+                    </label>
+                </div>
             </div>
 
             <!-- Element Type Controls -->
@@ -464,6 +492,10 @@
                 <!-- Grid Layer (Bottom) -->
                 <g id="grid-layer"></g>
 
+                <!-- Sub-structure Layers -->
+                <g id="pile-layer" style="display: none;"></g>
+                <g id="foundation-layer" style="display: none;"></g>
+
                 <!-- Dynamic Content Group -->
                 <g id="content-layer"></g>
 
@@ -479,6 +511,8 @@
         const coordDisplay = document.getElementById('coord-display');
         const svg = document.getElementById('main-svg');
         const gridLayer = document.getElementById('grid-layer');
+        const pileLayer = document.getElementById('pile-layer');
+        const foundationLayer = document.getElementById('foundation-layer');
         const contentLayer = document.getElementById('content-layer');
         const calloutLayer = document.getElementById('callout-layer');
 
@@ -488,11 +522,15 @@
 
         // State Variables
         let floorData = [];
+        let foundationData = [];
+        let pileData = [];
         let activeZones = { 'A': true, 'B': true, 'C': true };
         let activeTypes = { 'C': true, 'CW': true, 'SW': true };
         let showLabels = true;
         let showDetails = false;
         let showGrid = true;
+        let showFoundations = false;
+        let showPiles = false;
         let placedRects = [];
         let selectedItemId = null; // Track selected item
         
@@ -660,21 +698,23 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.setAttribute("href", url);
-            link.setAttribute("download", "floor_plan_data.js");
+            link.setAttribute("download", "data.js");
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
 
-        // Load Data from Global Variable (set by floor_plan_data.js)
+        // Load Data from Global Variable (set by data.js)
         if (window.floorData) {
             floorData = window.floorData;
+            foundationData = window.foundationData || [];
+            pileData = window.pileData || [];
             updateStats(floorData);
             renderData(floorData);
         } else {
-            console.error('floorData not found. Make sure floor_plan_data.js is loaded.');
-            alert('Could not load data. Please ensure floor_plan_data.js exists.');
+            console.error('floorData not found. Make sure data.js is loaded.');
+            alert('Could not load data. Please ensure data.js exists.');
         }
 
         function updateStats(data) {
@@ -733,6 +773,18 @@
             gridLayer.style.display = showGrid ? 'block' : 'none';
         }
 
+        function toggleFoundations(checked) {
+            showFoundations = checked;
+            foundationLayer.style.display = showFoundations ? 'block' : 'none';
+            if (showFoundations) renderFoundations();
+        }
+
+        function togglePiles(checked) {
+            showPiles = checked;
+            pileLayer.style.display = showPiles ? 'block' : 'none';
+            if (showPiles) renderPiles();
+        }
+
         const btnZoomIn = document.getElementById('btn-zoom-in');
         const btnZoomOut = document.getElementById('btn-zoom-out');
         const btnReset = document.getElementById('btn-reset');
@@ -744,6 +796,12 @@
             // 0. Grid Layer
             gridLayer.style.transform = transform;
             gridLayer.style.transformOrigin = "0 0";
+
+            pileLayer.style.transform = transform;
+            pileLayer.style.transformOrigin = "0 0";
+
+            foundationLayer.style.transform = transform;
+            foundationLayer.style.transformOrigin = "0 0";
 
             contentLayer.style.transform = transform;
             contentLayer.style.transformOrigin = "0 0"; // Important: Scale from top-left relative to translation
@@ -849,11 +907,108 @@
         
         // --- Smart Placement Logic ---
 
+        function getScaleAndMargin() {
+            // Helper to get current scale params based on floorData (main driver)
+            const data = floorData;
+            if (data.length === 0) return { scale: 1, marginX: 0, marginY: 0, minX: 0, maxY: 0 };
+
+            const xValues = data.map(d => d.x);
+            const yValues = data.map(d => d.y);
+            const minX = Math.min(...xValues);
+            const maxX = Math.max(...xValues);
+            const minY = Math.min(...yValues);
+            const maxY = Math.max(...yValues);
+
+            const padding = 5; 
+            const rangeX = maxX - minX + (padding * 2);
+            const rangeY = maxY - minY + (padding * 2);
+
+            const svgWidth = 1200;
+            const svgHeight = 600;
+
+            const scaleX = svgWidth / rangeX;
+            const scaleY = svgHeight / rangeY;
+            const scale = Math.min(scaleX, scaleY) * 0.9;
+
+            const marginX = (svgWidth - (maxX - minX) * scale) / 2;
+            const marginY = (svgHeight - (maxY - minY) * scale) / 2;
+
+            return { scale, marginX, marginY, minX, maxY };
+        }
+
+        function renderFoundations() {
+            foundationLayer.innerHTML = '';
+            const { scale, marginX, marginY, minX, maxY } = getScaleAndMargin();
+            
+            let counts = { 'A': 0, 'B': 0, 'C': 0 };
+
+            foundationData.forEach(item => {
+                if (!activeZones[item.zone]) return;
+                counts[item.zone]++;
+
+                const sx = (item.x - minX) * scale + marginX;
+                const sy = (maxY - item.y) * scale + marginY;
+
+                // Foundation is usually a rect. 
+                // For now, let's draw a dashed rectangle around it, slightly larger than a column.
+                // Say 1.5m x 1.5m default?
+                const w = 1.5 * scale;
+                const h = 1.5 * scale;
+
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("x", sx - w / 2);
+                rect.setAttribute("y", sy - h / 2);
+                rect.setAttribute("width", w);
+                rect.setAttribute("height", h);
+                rect.setAttribute("class", "foundation");
+                
+                // Tooltip
+                const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+                title.textContent = `${item.label} (Zone ${item.zone})`;
+                rect.appendChild(title);
+
+                foundationLayer.appendChild(rect);
+            });
+        }
+
+        function renderPiles() {
+            pileLayer.innerHTML = '';
+            const { scale, marginX, marginY, minX, maxY } = getScaleAndMargin();
+
+            pileData.forEach(item => {
+                if (!activeZones[item.zone]) return;
+
+                const sx = (item.x - minX) * scale + marginX;
+                const sy = (maxY - item.y) * scale + marginY;
+
+                // Pile is a circle
+                // Diameter ~0.6m?
+                const r = (0.3) * scale; 
+
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", sx);
+                circle.setAttribute("cy", sy);
+                circle.setAttribute("r", r);
+                circle.setAttribute("class", "pile");
+
+                // Tooltip
+                const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+                title.textContent = `${item.label} (${item.foundation})`;
+                circle.appendChild(title);
+
+                pileLayer.appendChild(circle);
+            });
+        }
+
         function renderData(data, recalcBounds = true) {
             contentLayer.innerHTML = ''; 
             calloutLayer.innerHTML = ''; 
             placedRects = []; // Reset placement
 
+            // Also re-render sub-structures if visible (to match scale if bounds changed)
+            // But usually bounds are fixed by floorData. 
+            // Let's assume bounds are driven by floorData for now.
+            
             if (data.length === 0) return;
 
             const boundsData = recalcBounds ? (floorData.length > 0 ? floorData : data) : floorData;
@@ -1003,6 +1158,10 @@
                     drawCallout(item, sx, sy);
                 }
             });
+
+            // Re-render sub-structures
+            if (showFoundations) renderFoundations();
+            if (showPiles) renderPiles();
             
             // Initial transform update to set scales
             updateTransform();
@@ -1336,12 +1495,51 @@
             });
 
             // 3. Combine to CSV String
-            const csvContent = [
-                headers.join(","),
-                ...rows.map(r => r.join(","))
-            ].join("\n");
+            // Foundations sheet (global + local)
+            const fdnHeaders = ["Label", "Zone", "Global X", "Global Y", "Local X", "Local Y", "Width", "Height"];
+            const fdnRows = foundationData.map(item => {
+                const xOffset = xOffsets[item.zone] || 0;
+                return [
+                    item.label,
+                    item.zone,
+                    item.x,
+                    item.y,
+                    (item.x - xOffset).toFixed(3),
+                    item.y.toFixed(3),
+                    item.width || '',
+                    item.height || ''
+                ];
+            });
 
-            downloadCSV(csvContent, `floor_plan_data_${new Date().toISOString().slice(0,10)}.csv`);
+            // Piles sheet (global + local)
+            const pileHeaders = ["Label", "Zone", "Foundation", "Global X", "Global Y", "Local X", "Local Y"];
+            const pileRows = pileData.map(item => {
+                const xOffset = xOffsets[item.zone] || 0;
+                return [
+                    item.label,
+                    item.zone,
+                    item.foundation,
+                    item.x,
+                    item.y,
+                    (item.x - xOffset).toFixed(3),
+                    item.y.toFixed(3)
+                ];
+            });
+
+            const csvSections = [
+                headers.join(","),
+                ...rows.map(r => r.join(",")),
+                "", // spacer
+                fdnHeaders.join(","),
+                ...fdnRows.map(r => r.join(",")),
+                "", // spacer
+                pileHeaders.join(","),
+                ...pileRows.map(r => r.join(","))
+            ];
+
+            const csvContent = csvSections.join("\n");
+
+            downloadCSV(csvContent, `data_${new Date().toISOString().slice(0,10)}.csv`);
         }
 
         function exportGridToCSV() {
@@ -1388,11 +1586,14 @@
             const clone = svg.cloneNode(true);
 
             // Remove zoom/pan transforms so export shows full drawing
-            ['grid-layer', 'content-layer', 'callout-layer'].forEach(id => {
+            ['grid-layer', 'pile-layer', 'foundation-layer', 'content-layer', 'callout-layer'].forEach(id => {
                 const layer = clone.getElementById ? clone.getElementById(id) : clone.querySelector(`#${id}`);
                 if (layer && layer.style) {
                     layer.style.transform = 'none';
                     layer.style.transformOrigin = null;
+                    // Ensure visibility matches current state
+                    if (id === 'pile-layer') layer.style.display = showPiles ? 'block' : 'none';
+                    if (id === 'foundation-layer') layer.style.display = showFoundations ? 'block' : 'none';
                 }
             });
 
@@ -1417,6 +1618,8 @@
                 }
                 text { font-family: 'JetBrains Mono', monospace; }
                 .wall { fill: none; stroke: var(--blueprint-text); stroke-width: 2; vector-effect: non-scaling-stroke; }
+                .foundation { fill: none; stroke: #94a3b8; stroke-width: 1; stroke-dasharray: 2; vector-effect: non-scaling-stroke; }
+                .pile { fill: #cbd5e1; stroke: none; }
                 .partition { fill: none; stroke: var(--blueprint-line); stroke-width: 1; stroke-dasharray: 4; }
                 .room circle, .room rect { transition: all 0.3s ease; }
                 .room-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--blueprint-text); text-anchor: middle; }
@@ -1503,7 +1706,36 @@
                 "Global Coordinate": parseFloat(r.GlobalCoord.toFixed(3))
             }));
 
-            // 3. Create Workbook & Sheets
+            // 3. Prepare Foundations
+            const foundationRows = foundationData.map(item => {
+                const xOffset = xOffsets[item.zone] || 0;
+                return {
+                    "Label": item.label,
+                    "Zone": item.zone,
+                    "Global X": item.x,
+                    "Global Y": item.y,
+                    "Local X": parseFloat((item.x - xOffset).toFixed(3)),
+                    "Local Y": parseFloat(item.y.toFixed(3)),
+                    "Width (m)": item.width || 0,
+                    "Height (m)": item.height || 0
+                };
+            });
+
+            // 4. Prepare Piles
+            const pileRows = pileData.map(item => {
+                const xOffset = xOffsets[item.zone] || 0;
+                return {
+                    "Label": item.label,
+                    "Zone": item.zone,
+                    "Foundation": item.foundation,
+                    "Global X": item.x,
+                    "Global Y": item.y,
+                    "Local X": parseFloat((item.x - xOffset).toFixed(3)),
+                    "Local Y": parseFloat(item.y.toFixed(3))
+                };
+            });
+
+            // 5. Create Workbook & Sheets
             const wb = XLSX.utils.book_new();
             
             const wsFloor = XLSX.utils.json_to_sheet(floorRows);
@@ -1514,7 +1746,17 @@
                 XLSX.utils.book_append_sheet(wb, wsGrid, "Grid Data");
             }
 
-            // 4. Write File
+            if (foundationRows.length > 0) {
+                const wsFdn = XLSX.utils.json_to_sheet(foundationRows);
+                XLSX.utils.book_append_sheet(wb, wsFdn, "Foundations");
+            }
+
+            if (pileRows.length > 0) {
+                const wsPile = XLSX.utils.json_to_sheet(pileRows);
+                XLSX.utils.book_append_sheet(wb, wsPile, "Piles");
+            }
+
+            // 6. Write File
             XLSX.writeFile(wb, `floor_plan_export_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 

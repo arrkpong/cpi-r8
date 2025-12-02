@@ -51,6 +51,6 @@ if __name__ == "__main__":
     # and expect it to be in the same directory.
     
     csv_filename = "251124_R8_FDN_Load_CG_Calc_V01.csv"
-    json_filename = "floor_plan_data.json"
+    json_filename = "data.json"
     
     convert_csv_to_json(csv_filename, json_filename)

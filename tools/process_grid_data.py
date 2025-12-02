@@ -3,7 +3,7 @@ import json
 import os
 
 csv_path = r'd:\code\floorplan_r8\data\251125_R8_ABCD_Grid Definitions - Grid Lines.csv'
-js_path = r'd:\code\floorplan_r8\floor_plan_data.js'
+js_path = r'd:\code\floorplan_r8\data.js'
 
 grid_data = {
     "A": {"x": [], "y": []},

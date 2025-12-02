@@ -18,7 +18,7 @@ floorplan_r8/
 ├── docs/   # Data dictionaries and documentation
 ├── tools/  # Python scripts for data processing
 ├── index.html          # Main application (open in browser)
-└── floor_plan_data.js  # Generated data file (do not edit manually)
+└── data.js  # Generated data file (do not edit manually)
 ```
 
 ## How to Use

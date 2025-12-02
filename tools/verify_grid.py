@@ -1,7 +1,7 @@
 import json
 import re
 
-js_path = r'd:\code\floorplan_r8\floor_plan_data.js'
+js_path = r'd:\code\floorplan_r8\data.js'
 
 def load_data(path):
     with open(path, 'r', encoding='utf-8') as f:

@@ -23,4 +23,4 @@
 
 2.  **การใช้งาน (Usage):**
     - ใช้สำหรับวาดเส้นอ้างอิง (Reference Lines) บนหน้าจอ
-    - ข้อมูลถูกแปลงเป็น `window.gridData` ในไฟล์ `floor_plan_data.js` โดยสคริปต์ `tools/process_grid_data.py`
+    - ข้อมูลถูกแปลงเป็น `window.gridData` ในไฟล์ `data.js` โดยสคริปต์ `tools/process_grid_data.py`

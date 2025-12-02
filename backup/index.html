@@ -14,7 +14,7 @@
     <!-- SheetJS for Excel Export -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <!-- Load Data Script -->
-    <script src="floor_plan_data.js"></script>
+    <script src="data.js"></script>
     <style>
         :root {
             --blueprint-bg: #0f172a;
@@ -660,21 +660,21 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.setAttribute("href", url);
-            link.setAttribute("download", "floor_plan_data.js");
+            link.setAttribute("download", "data.js");
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
 
-        // Load Data from Global Variable (set by floor_plan_data.js)
+        // Load Data from Global Variable (set by data.js)
         if (window.floorData) {
             floorData = window.floorData;
             updateStats(floorData);
             renderData(floorData);
         } else {
-            console.error('floorData not found. Make sure floor_plan_data.js is loaded.');
-            alert('Could not load data. Please ensure floor_plan_data.js exists.');
+            console.error('floorData not found. Make sure data.js is loaded.');
+            alert('Could not load data. Please ensure data.js exists.');
         }
 
         function updateStats(data) {
@@ -1341,7 +1341,7 @@
                 ...rows.map(r => r.join(","))
             ].join("\n");
 
-            downloadCSV(csvContent, `floor_plan_data_${new Date().toISOString().slice(0,10)}.csv`);
+            downloadCSV(csvContent, `data_${new Date().toISOString().slice(0,10)}.csv`);
         }
 
         function exportGridToCSV() {

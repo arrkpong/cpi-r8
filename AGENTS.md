@@ -10,17 +10,17 @@
 - **Styling**: Tailwind CSS (via CDN)
 - **Icons**: Lucide Icons (via CDN)
 - **Data Export**: SheetJS (via CDN)
-- **Data Source**: `floor_plan_data.js` (Global variables `window.floorData` and `window.floorData`)
+- **Data Source**: `data.js` (Global variables `window.floorData` and `window.floorData`)
 
 ## Project Structure
 
 - `index.html`: Main application entry point. Contains all UI structure, styling (custom CSS + Tailwind classes), and application logic (JS).
-- `floor_plan_data.js`: Contains the data payload.
+- `data.js`: Contains the data payload.
   - `window.floorData`: Array of objects representing columns, walls, and shear walls.
   - `window.gridData`: Object defining grid lines for Zones A, B, and C.
 - `data/`: Source CSV files for the floor plan data.
 - `tools/`: Python scripts for data processing and verification.
-  - `process_grid_data.py`: Parses grid CSV and updates `floor_plan_data.js`.
+  - `process_grid_data.py`: Parses grid CSV and updates `data.js`.
   - `verify_grid.py`: Checks alignment between `floorData` and `gridData`.
   - `find_grid_offsets.py`: Calculates coordinate offsets between data sources.
 
@@ -28,7 +28,7 @@
 
 ### Data Handling
 
-- **Global Variables**: Data is loaded into global scope (`window.floorData`, `window.gridData`) from `floor_plan_data.js`.
+- **Global Variables**: Data is loaded into global scope (`window.floorData`, `window.gridData`) from `data.js`.
 - **Coordinate Systems**:
   - `floorData` uses **Global Coordinates**.
   - `gridData` uses **Local Coordinates**.
@@ -57,7 +57,7 @@
 - **DO** use absolute paths when referencing files.
 - **DO** maintain the "Blueprint" aesthetic.
 - **DO** check for `window.floorData` existence before rendering.
-- **DON'T** overwrite `floor_plan_data.js` manually if it can be regenerated via scripts (unless adding new data types).
+- **DON'T** overwrite `data.js` manually if it can be regenerated via scripts (unless adding new data types).
 - **DON'T** remove the CDN links for Tailwind, Lucide, or SheetJS.
 
 ## Useful Commands

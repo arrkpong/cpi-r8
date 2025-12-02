@@ -23,4 +23,4 @@ This file contains **Grid Line** data for each building zone, used for positiona
 
 2.  **Usage:**
     - Used for drawing reference lines on the screen.
-    - Data is parsed into `window.gridData` in `floor_plan_data.js` by the script `tools/process_grid_data.py`.
+    - Data is parsed into `window.gridData` in `data.js` by the script `tools/process_grid_data.py`.

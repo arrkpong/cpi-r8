@@ -27,3 +27,8 @@ This file contains coordinate data for **Foundations (FDN)**, organized into thr
 
 2.  **Usage:**
     - When parsing, treat each zone's block independently or read them based on the column indices provided above.
+    - **Offsets to align with `floorData` (Global Coordinates):** Add these to the raw X/Y when converting to the global system used in `data.js` (from the current run of `scripts/process_foundation_data.js`):
+        - Zone A: DX = -125.2726, DY = -4.7188
+        - Zone B: DX = -125.5453, DY = -5.6842
+        - Zone C: DX = -118.1581, DY = -5.3942
+      Recompute if source data or alignment reference changes.
